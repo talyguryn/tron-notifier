@@ -8,13 +8,17 @@ export class TronNetwork {
   private ordersList: OrderList;
   private dbOrders: Database<DatabaseData<Order>>;
   private dbOrdersReported: Database<DatabaseData<Boolean>>;
+  private dbOrdersDaily: Database<DatabaseData<Order>>;
+  private dbOrdersReportedDaily: Database<DatabaseData<Boolean>>;
 
   constructor(
     dbOrders: Database<DatabaseData<Order>>,
-    dbOrdersReported: Database<DatabaseData<Boolean>>
+    dbOrdersReported: Database<DatabaseData<Boolean>>,
+    dbOrdersDaily: Database<DatabaseData<Order>>
   ) {
     this.dbOrders = dbOrders;
     this.dbOrdersReported = dbOrdersReported;
+    this.dbOrdersDaily = dbOrdersDaily;
   }
 
   public async pullUpdates() {
@@ -30,17 +34,13 @@ export class TronNetwork {
 
   private async saveOrdersToDatabase(orders: Order[]): Promise<void> {
     for await (const order of orders) {
-      if (await this.dbOrdersReported.read(order.id.toString())) {
-        // console.log(`Order ${order.id} already reported`);
-        continue;
-      }
-
-      if (await this.dbOrders.read(order.id.toString())) {
-        // console.log(`Order ${order.id} already in the database`);
-        continue;
-      }
+      // console.log(`Order ${order.id} already reported`);
+      if (await this.dbOrdersReported.read(order.id.toString())) continue;
+      // console.log(`Order ${order.id} already in the database`);
+      if (await this.dbOrders.read(order.id.toString())) continue;
 
       await this.dbOrders.create(order.id.toString(), { data: order });
+      await this.dbOrdersDaily.create(order.id.toString(), { data: order });
     }
   }
 
@@ -60,6 +60,7 @@ export class TronNetwork {
 
     let numberOfOrders = 0;
     let totalAmount = 0;
+    let totalPayout = 0;
 
     let message = ``;
     const results: { [key: string]: number } = {};
@@ -81,6 +82,7 @@ export class TronNetwork {
 
       numberOfOrders++;
       totalAmount += order.amount;
+      totalPayout += (order.amount * order.price) / 1000000;
     }
 
     for (const [key, value] of Object.entries(results)) {
@@ -89,8 +91,63 @@ export class TronNetwork {
 
     // Add message with total orders
     if (numberOfOrders === 0) return '';
-    message += `\nTotal ${numberOfOrders} order${numberOfOrders > 1 ? 's' : ''} for the last hour\n`;
-    message += `Total ${totalAmount.toLocaleString()} energy`;
+    message += `\nTotal: <b>${numberOfOrders} order${
+      numberOfOrders > 1 ? 's' : ''
+    }</b> for the last hour\n`;
+    message += `Volume: ${totalAmount.toLocaleString()} energy\n`;
+    message += `Payout: <b>${(
+      totalPayout * 0.85
+    ).toLocaleString()} trx</b> = ${totalPayout.toLocaleString()} trx – 15% fee\n`;
+
+    return message;
+  }
+
+  public async composeDailyMessage(): Promise<string> {
+    const ordersFromDb = await this.dbOrdersDaily.readAll();
+    const ordersKeys = [];
+
+    Object.keys(ordersFromDb).forEach((key) => {
+      ordersKeys.push(key);
+    });
+
+    const orders = ordersKeys
+      .map((key) => ordersFromDb[key].data)
+      .sort((a, b) => b.price - a.price);
+
+    let numberOfOrders = 0;
+    let totalAmount = 0;
+    let totalPayout = 0;
+
+    let message = `<b>24 hours #daily report</b>\n\n`;
+    const results: { [key: string]: number } = {};
+
+    for (const order of orders) {
+      const amount = order.amount.toLocaleString();
+
+      const key = `${amount} / ${order.price}`;
+
+      results[key] = results[key] ? ++results[key] : 1;
+
+      numberOfOrders++;
+      totalAmount += order.amount;
+      totalPayout += (order.amount * order.price) / 1000000;
+
+      await this.dbOrdersDaily.delete(order.id.toString());
+    }
+
+    for (const [key, value] of Object.entries(results)) {
+      message += `${key} - ${value} order${value > 1 ? 's' : ''}\n`;
+    }
+
+    // Add message with total orders
+    if (numberOfOrders === 0) return '';
+    message += `\nTotal: <b>${numberOfOrders} order${
+      numberOfOrders > 1 ? 's' : ''
+    }</b> for the last 24 hours\n`;
+    message += `Volume: ${totalAmount.toLocaleString()} energy\n`;
+    message += `Payout: <b>${(
+      totalPayout * 0.85
+    ).toLocaleString()} trx</b> = ${totalPayout.toLocaleString()} trx – 15% fee\n`;
 
     return message;
   }
