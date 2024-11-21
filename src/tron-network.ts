@@ -58,6 +58,9 @@ export class TronNetwork {
   public async composeMessage(orders: Order[]): Promise<string> {
     orders = orders.sort((a, b) => b.price - a.price);
 
+    let numberOfOrders = 0;
+    let totalAmount = 0;
+
     let message = ``;
     const results: { [key: string]: number } = {};
 
@@ -75,6 +78,9 @@ export class TronNetwork {
       const key = `${amount} / ${order.price}`;
 
       results[key] = results[key] ? ++results[key] : 1;
+
+      numberOfOrders++;
+      totalAmount += order.amount;
     }
 
     for (const [key, value] of Object.entries(results)) {
@@ -82,10 +88,9 @@ export class TronNetwork {
     }
 
     // Add message with total orders
-    let sum = 0;
-    for (const value of Object.values(results)) sum += +value;
-    if (sum === 0) return '';
-    message += `\nTotal ${sum} order${sum > 1 ? 's' : ''} for the last hour`;
+    if (numberOfOrders === 0) return '';
+    message += `\nTotal ${numberOfOrders} order${numberOfOrders > 1 ? 's' : ''} for the last hour\n`;
+    message += `Total ${totalAmount.toLocaleString()} energy`;
 
     return message;
   }
