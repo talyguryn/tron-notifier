@@ -67,6 +67,7 @@ export class TronNetwork {
 
     for (const order of orders) {
       const amount = order.amount.toLocaleString();
+      const duration = this.prettifyDuration(order.duration);
 
       // check if order exists in the database
       if (await this.dbOrdersReported.read(order.id.toString())) {
@@ -76,7 +77,7 @@ export class TronNetwork {
         await this.dbOrders.delete(order.id.toString());
       }
 
-      const key = `${amount} / ${order.price}`;
+      const key = `${amount} / ${order.price} / ${duration}`;
 
       results[key] = results[key] ? ++results[key] : 1;
 
@@ -86,6 +87,9 @@ export class TronNetwork {
     }
 
     for (const [key, value] of Object.entries(results)) {
+      const price = parseInt(key.split('/')[1].trim(), 10);
+      if (price < 60 || price > 120) continue;
+
       message += `${key} - ${value} order${value > 1 ? 's' : ''}\n`;
     }
 
@@ -123,8 +127,9 @@ export class TronNetwork {
 
     for (const order of orders) {
       const amount = order.amount.toLocaleString();
+      const duration = this.prettifyDuration(order.duration);
 
-      const key = `${amount} / ${order.price}`;
+      const key = `${amount} / ${order.price} / ${duration}`;
 
       results[key] = results[key] ? ++results[key] : 1;
 
@@ -136,6 +141,9 @@ export class TronNetwork {
     }
 
     for (const [key, value] of Object.entries(results)) {
+      const price = parseInt(key.split('/')[1].trim(), 10);
+      if (price < 60 || price > 120) continue;
+
       message += `${key} - ${value} order${value > 1 ? 's' : ''}\n`;
     }
 
@@ -150,5 +158,15 @@ export class TronNetwork {
     ).toLocaleString()} trx</b> = ${totalPayout.toLocaleString()} trx – 15% fee\n`;
 
     return message;
+  }
+
+  private prettifyDuration(duration: number): string {
+    if (duration < 3600) {
+      return `${duration / 60} min`;
+    } else if (duration < 86400) {
+      return `${duration / 3600} hours`;
+    } else {
+      return `${duration / 86400} days`;
+    }
   }
 }
