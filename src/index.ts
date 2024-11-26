@@ -58,7 +58,9 @@ console.log('Starting...', new Date().toISOString());
     const message = await tronNetwork.composeMessage(newOrders);
 
     if (!message) {
-      console.error('Public report message is empty. Skipping sending report');
+      console.error(
+        `${new Date().toISOString()} Regular report message is empty. Skipping sending report`
+      );
       return;
     }
 
@@ -69,7 +71,10 @@ console.log('Starting...', new Date().toISOString());
         disable_web_page_preview: true,
       });
     } catch (error) {
-      console.error('Error while sending message', error.message);
+      console.error(
+        `${new Date().toISOString()} Error while sending message`,
+        error.message
+      );
     }
   });
 
@@ -78,7 +83,9 @@ console.log('Starting...', new Date().toISOString());
     const message = await tronNetwork.composeDailyMessage();
 
     if (!message) {
-      console.error('Daily report message is empty. Skipping sending report');
+      console.error(
+        `${new Date().toISOString()} Daily report message is empty. Skipping sending report`
+      );
       return;
     }
 
@@ -89,7 +96,10 @@ console.log('Starting...', new Date().toISOString());
         disable_web_page_preview: true,
       });
     } catch (error) {
-      console.error('Error while sending message', error.message);
+      console.error(
+        `${new Date().toISOString()} Error while sending message`,
+        error.message
+      );
     }
   });
 })();

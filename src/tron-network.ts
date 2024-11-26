@@ -22,14 +22,14 @@ export class TronNetwork {
   }
 
   public async pullUpdates() {
-    console.log('Pulling updates...');
+    // console.log('Pulling updates...');
 
     const ordersList = parseOrderList(await getOrdersList());
     this.ordersList = parseOrderList(ordersList);
 
     await this.saveOrdersToDatabase(this.ordersList.list);
 
-    console.log('Updates pulled');
+    // console.log('Updates pulled');
   }
 
   private async saveOrdersToDatabase(orders: Order[]): Promise<void> {
