@@ -142,7 +142,10 @@ export class TronNetwork {
 
     for (const [key, value] of Object.entries(results)) {
       const price = parseInt(key.split('/')[1].trim(), 10);
+      const duration = key.split('/')[2].trim();
+
       if (price < 60 || price > 120) continue;
+      if (duration.split(' ')[1] !== 'min') continue;
 
       message += `${key} - ${value} order${value > 1 ? 's' : ''}\n`;
     }
